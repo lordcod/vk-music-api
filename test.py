@@ -1,19 +1,24 @@
-from yandex_music_api import Client
+from vk_music_api import Client
+from vk_music_api.coonector import Requsts
 import os
 import asyncio
+import aiohttp
 from dotenv import load_dotenv
 
-load_dotenv("C:/Users/2008d/git/lordbot/.env")
+load_dotenv("C:/Users/2008d/git/vk-music-api/.env")
 
-token = os.environ.get('yandex_api_token')
+token = os.environ.get('vk_api_token')
+agent = os.environ.get('user_agent_api_token')
 
 async def main():
-    client = Client(token)
-    albums = await client.get_list(7637767, 'album')
-    album = albums[0]
-    print(album)
-    result = await album.get_tracks()
-    print(await result[0].download_link(320))
+    ses = aiohttp.ClientSession()
+    reqs = Requsts(ses)
+    print("Start")
+    client = Client(token, agent, reqs)
+    print("Load client")
+    data = await client.search("We Should Plant a Tree")
+    print(data[0].data)
+    await ses.close()
 
 if __name__ == "__main__":
     asyncio.run(main())

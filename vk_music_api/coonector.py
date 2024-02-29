@@ -5,9 +5,13 @@ from typing import Optional, Mapping, Any, Coroutine
 
 class Requsts:
     def __init__(self, session: Optional[aiohttp.ClientSession] = None) -> None:
+        self.datas = {"https": 1,
+                      "lang": "en",
+                      "extended": 1,
+                      "v": 5.131}
         self.headers = {}
         self.session = session
-        self.base_url = "https://api.music.yandex.net"
+        self.base_url = "https://api.vk.com/method/audio."
     
     async def request(
         self,
@@ -20,6 +24,7 @@ class Requsts:
         cookies: Optional[Mapping[str, str]] = None,
         headers: Optional[Mapping[str, str]] = None,
     ) -> Coroutine[Any, Any, ClientResponse]:
+        data = self.get_datas(data)
         headers = self.get_headers(headers)
         if self.session is None:
             async with aiohttp.ClientSession() as session:
@@ -60,18 +65,20 @@ class Requsts:
         method = "POST"
         return self.request(method, url, **kwargs)
     
-    def de_json(self, responce: ClientResponse):
-        return responce.json(loads=orjson.loads)
+    async def de_json(self, responce: ClientResponse):
+        content = await responce.read()
+        self
+        return orjson.loads(content)
     
     async def read(
         self, 
         url: str, 
         **kwargs
     ) -> str:
-        response = await self.get(url, **kwargs)
+        response = await self.post(url, **kwargs)
         data_bytes = await response.read()
         text = data_bytes.decode()
-        await self.close_res(response)
+        await self.close_response(response)
         return text
     
     async def read_json(
@@ -79,18 +86,30 @@ class Requsts:
         url: str, 
         **kwargs
     ) -> dict:
-        response = await self.get(url, **kwargs)
+        response = await self.post(url, **kwargs)
         data = await self.de_json(response)
-        await self.close_res(response)
+        await self.close_response(response)
         return data
     
-    def close_res(self, responce: ClientResponse) -> Coroutine[Any, Any, None]:
-        responce.release()
-        return responce.wait_for_close()
+    async def close_response(self, response: ClientResponse):
+        response.release()
+        response.close()
     
     def set_authorization(self, token: str) -> None:
-        self.headers.update({'Authorization': f'OAuth {token}'})
+        self.datas.update({'access_token': token})
 
+    def set_user_agent(self, user_agent: str) -> None:
+        self.headers.update({'User-Agent': user_agent})
+    
+    def get_datas(
+        self, 
+        params: Optional[Mapping[str, str]] = None
+    ) -> Mapping[str, str]:
+        if params is None:
+            return self.datas
+        params.update(self.datas)
+        return params
+    
     def get_headers(
         self, 
         headers: Optional[Mapping[str, str]] = None
